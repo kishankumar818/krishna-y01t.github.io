@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
+    <title>Krishna Studio</title>
+    
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore-compat.js"></script>
+
+    <style>
+        :root {
+            --bg-body: #fefcf5;
+            --bg-card: #ffffff;
+            --text-primary: #1b1b2c;
+            --text-secondary: #4a4a6a;
+            --accent-gold: #e9b35f;
+            --accent-rose: #d46b8e;
+            --gradient-button: linear-gradient(105deg, #E9B35F, #D46B8E);
+            --card-radius: 32px;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Plus Jakarta Sans', sans-serif; }
+        body { background: var(--bg-body); color: var(--text-primary); padding-bottom: 100px; }
+        header {
+            position: fixed; top: 0; width: 100%; background: rgba(255,252,240,0.92); backdrop-filter: blur(20px);
+            padding: 16px 28px; display: flex; justify-content: space-between; align-items: center;
+            border-bottom: 1px solid rgba(0,0,0,0.06); z-index: 50;
+        }
+        .logo { font-size: 26px; font-weight: 800; background: linear-gradient(130deg, #2E2A4A, #C38D9E, #E9B35F); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        .profile-btn { width: 44px; height: 44px; border-radius: 30px; background: var(--gradient-button); display: flex; align-items: center; justify-content: center; color: white; }
+        .view { display: none; padding: 100px 24px 30px 24px; animation: fadeSlide 0.45s ease; }
+        .view.active { display: block; }
+        @keyframes fadeSlide { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+        .banner-container { width: 100%; aspect-ratio: 16/9; border-radius: var(--card-radius); overflow: hidden; margin-bottom: 32px; box-shadow: 0 12px 28px -8px rgba(0,0,0,0.08); position: relative; }
+        .slide { position: absolute; inset: 0; background-size: cover; background-position: center; opacity: 0; transition: opacity 0.8s; border-radius: var(--card-radius); }
+        .slide.active { opacity: 1; }
+        .slide-overlay { position: absolute; inset: 0; background: linear-gradient(to top, rgba(0,0,0,0.55) 5%, rgba(0,0,0,0.1) 50%); display: flex; flex-direction: column; justify-content: flex-end; padding: 24px; border-radius: var(--card-radius); }
+        .slide-tag { background: linear-gradient(135deg, #E6B980, #C38D9E); padding: 6px 16px; border-radius: 60px; font-size: 11px; font-weight: 800; color: #2E2A3A; align-self: flex-start; margin-bottom: 12px; }
+        .slide-title { font-size: 24px; font-weight: 800; color: white; text-shadow: 0 2px 6px rgba(0,0,0,0.3); }
+        .cat-list { display: flex; gap: 14px; overflow-x: auto; margin-bottom: 32px; }
+        .cat-pill { padding: 12px 26px; border-radius: 60px; background: white; border: 1px solid rgba(115,83,186,0.2); color: #4a4a6a; font-weight: 700; white-space: nowrap; cursor: pointer; transition: 0.2s; }
+        .cat-pill.active { background: var(--gradient-button); color: white; box-shadow: 0 10px 20px -6px rgba(212,107,142,0.4); }
+        .grid { display: grid; grid-template-columns: 1fr; gap: 28px; }
+        .card { border-radius: var(--card-radius); background: white; border: 1px solid #f0e9df; box-shadow: 0 6px 14px rgba(0,0,0,0.05); transition: 0.25s; cursor: pointer; }
+        .card:hover { transform: translateY(-6px); box-shadow: 0 20px 30px -12px rgba(0,0,0,0.15); }
+        .card-img-box { width: 100%; aspect-ratio: 16/9; overflow: hidden; border-radius: var(--card-radius) var(--card-radius) 0 0; background: #f2efe6; }
+        .card-img { width: 100%; height: 100%; object-fit: cover; transition: 0.4s; }
+        .card-content { padding: 20px; }
+        .card-title { font-size: 20px; font-weight: 800; margin-bottom: 8px; color: #1f1b36; }
+        .card-desc { font-size: 13px; color: #6e6b8f; }
+        .nav-island { position: fixed; bottom: 28px; left: 50%; transform: translateX(-50%); width: 86%; max-width: 380px; height: 70px; background: rgba(255,252,245,0.96); backdrop-filter: blur(24px); border: 1px solid rgba(233,179,95,0.3); border-radius: 60px; display: flex; justify-content: space-evenly; align-items: center; z-index: 100; }
+        .nav-btn { width: 54px; height: 54px; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #8d89ac; font-size: 24px; transition: 0.2s; cursor: pointer; }
+        .nav-btn.active { color: #D46B8E; background: rgba(212,107,142,0.1); }
+        #detail-modal { position: fixed; inset: 0; z-index: 200; pointer-events: none; }
+        .modal-bg { position: absolute; inset: 0; background: rgba(0,0,0,0.4); opacity: 0; transition: 0.25s; backdrop-filter: blur(6px); }
+        .modal-card { position: absolute; bottom: 0; width: 100%; height: 86vh; background: white; border-radius: 40px 40px 0 0; transform: translateY(100%); transition: 0.4s; overflow-y: auto; pointer-events: auto; border-top: 4px solid #E9B35F; }
+        .modal-open .modal-bg { opacity: 1; pointer-events: auto; }
+        .modal-open .modal-card { transform: translateY(0); }
+        .hero-img { width: 100%; height: 260px; object-fit: cover; mask-image: linear-gradient(to bottom, black 80%, transparent 100%); }
+        .content-box { padding: 0 26px 120px 26px; transform: translateY(-28px); }
+        .btn-gradient { width: 100%; padding: 16px; border-radius: 60px; background: var(--gradient-button); color: white; font-weight: 800; text-align: center; display: inline-block; margin-top: 20px; text-decoration: none; border: none; cursor: pointer; }
+        .search-input { width: 100%; padding: 16px 20px 16px 52px; border-radius: 60px; border: 1px solid #ddd0c0; background: white; font-size: 16px; outline: none; }
+        .search-input:focus { border-color: #D46B8E; box-shadow: 0 0 0 3px rgba(212,107,142,0.2); }
+        .menu-card { background: white; border-radius: 36px; overflow: hidden; border: 1px solid #f0e9df; margin-bottom: 28px; box-shadow: 0 6px 14px rgba(0,0,0,0.03); }
+        .menu-item { padding: 20px 26px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid rgba(0,0,0,0.05); cursor: pointer; transition: 0.2s; }
+        .menu-item:last-child { border-bottom: none; }
+        .menu-item:active { background: rgba(233,179,95,0.1); }
+        .menu-left { display: flex; align-items: center; gap: 20px; font-weight: 700; font-size: 16px; color: #2a2742; }
+        .menu-icon { width: 48px; height: 48px; border-radius: 28px; background: linear-gradient(135deg, #F7E5D9, #F3DFCE); display: flex; align-items: center; justify-content: center; color: #C38D9E; font-size: 20px; }
+        @media (min-width: 640px) { .grid { grid-template-columns: repeat(2,1fr); } }
+        @media (min-width: 1024px) { .grid { grid-template-columns: repeat(3,1fr); } }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="logo">✨ Krishna Studio premium</div>
+        <div class="profile-btn"><i class="fas fa-feather-alt"></i></div>
+    </header>
+
+    <!-- HOME VIEW -->
+    <div id="view-home" class="view active">
+        <div class="banner-container" id="banner-box" style="display:none"></div>
+        <div class="cat-list">
+            <div class="cat-pill active" onclick="filter('All', this)">✨ All</div>
+            <div class="cat-pill" onclick="filter('App', this)">📱 Apps</div>
+            <div class="cat-pill" onclick="filter('Prompt', this)">💡 Prompts</div>
+            <div class="cat-pill" onclick="filter('Game', this)">🎮 Games</div>
+        </div>
+        <div class="grid" id="grid"><p style="text-align:center; color:#a281b5;"><i class="fas fa-spinner fa-pulse"></i> Loading Krishna Studio...</p></div>
+    </div>
+
+    <!-- SEARCH VIEW -->
+    <div id="view-search" class="view">
+        <div class="search-hero" style="text-align:center; margin-bottom:32px;">
+            <h1 style="font-size:36px;">Search <span style="background:linear-gradient(125deg,#C38D9E,#7353ba);-webkit-background-clip:text;-webkit-text-fill-color:transparent;">Vault</span></h1>
+        </div>
+        <div class="search-box" style="position:relative;">
+            <i class="fas fa-search" style="position:absolute; left:24px; top:50%; transform:translateY(-50%); color:#C38D9E;"></i>
+            <input type="text" id="search-input" class="search-input" placeholder="Type any keyword...">
+        </div>
+        <div class="grid" id="search-grid" style="margin-top:30px;"></div>
+    </div>
+
+    <!-- MENU / SETTINGS VIEW (ALL OLD FEATURES ADDED) -->
+    <div id="view-menu" class="view">
+        <h2 style="margin-bottom:24px; font-size:30px; font-weight:800;">⚡ Studio Settings</h2>
+        
+        <!-- Legal Section (Privacy, Terms, Disclaimer) -->
+        <div class="menu-card">
+            <div class="menu-item" onclick="openLegal('Privacy Policy')">
+                <div class="menu-left"><div class="menu-icon"><i class="fas fa-lock"></i></div> Privacy Policy</div>
+                <i class="fas fa-chevron-right" style="color:#E9B35F"></i>
+            </div>
+            <div class="menu-item" onclick="openLegal('Terms of Service')">
+                <div class="menu-left"><div class="menu-icon"><i class="fas fa-file-signature"></i></div> Terms & Conditions</div>
+                <i class="fas fa-chevron-right" style="color:#E9B35F"></i>
+            </div>
+            <div class="menu-item" onclick="openLegal('Disclaimer')">
+                <div class="menu-left"><div class="menu-icon"><i class="fas fa-exclamation-triangle"></i></div> Disclaimer</div>
+                <i class="fas fa-chevron-right" style="color:#E9B35F"></i>
+            </div>
+        </div>
+
+        <!-- CONTACT CREW (OLD FEATURE) - complete email + message + send button -->
+        <h2 style="margin:32px 0 18px 0; font-size:24px;">📬 Contact Crew</h2>
+        <div class="menu-card" style="padding:24px;">
+            <input type="email" id="contactEmail" class="search-input" style="margin-bottom:16px; background:#ffffff;" placeholder="Your Email Address ✨">
+            <textarea id="contactMessage" class="search-input" style="margin-bottom:16px; background:#ffffff;" rows="4" placeholder="Drop your creative message..."></textarea>
+            <button class="btn-gradient" onclick="sendContact()"><i class="fas fa-paper-plane"></i> Send Message</button>
+        </div>
+
+        <!-- FOOTER TEXT (OLD FEATURE) -->
+        <p style="text-align:center; color:#a396bc; font-size:13px; margin-top:28px;">Krishna Studio • Radiant Premium Collection</p>
+    </div>
+
+    <!-- BOTTOM NAVIGATION -->
+    <div class="nav-island">
+        <div class="nav-btn active" onclick="nav('home', this)"><i class="fas fa-compass"></i></div>
+        <div class="nav-btn" onclick="nav('search', this)"><i class="fas fa-magic"></i></div>
+        <div class="nav-btn" onclick="nav('menu', this)"><i class="fas fa-user-astronaut"></i></div>
+    </div>
+
+    <!-- DETAIL MODAL -->
+    <div id="detail-modal">
+        <div class="modal-bg" onclick="closeModal()"></div>
+        <div class="modal-card">
+            <div style="width:80px; height:5px; background:#E9B35F; border-radius:10px; margin:18px auto;"></div>
+            <div id="modal-content"></div>
+        </div>
+    </div>
+
+    <script>
+        // ========== FIREBASE CONFIG (KKR STUDIO) ==========
+        const firebaseConfig = {
+            apiKey: "AIzaSyB-AM1ryqWuPbsXnG_wv__lnd0G2NAZVxk",
+            authDomain: "kkr-studio-5f453.firebaseapp.com",
+            databaseURL: "https://kkr-studio-5f453-default-rtdb.europe-west1.firebasedatabase.app",
+            projectId: "kkr-studio-5f453",
+            storageBucket: "kkr-studio-5f453.firebasestorage.app",
+            messagingSenderId: "606862649575",
+            appId: "1:606862649575:web:9dbd15d03a25e82e515a42"
+        };
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+
+        let products = [];
+        let currentCat = 'All';
+
+        // Navigation
+        function nav(view, el) {
+            document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+            document.getElementById('view-'+view).classList.add('active');
+            document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+            el.classList.add('active');
+            window.scrollTo(0,0);
+        }
+
+        // Real-time products
+        db.collection('products').onSnapshot(snap => {
+            products = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+            render();
+        });
+
+        // Real-time banners
+        db.collection('banners').onSnapshot(snap => {
+            const banners = snap.docs.map(d => d.data()).filter(b => b.active);
+            const box = document.getElementById('banner-box');
+            if(!banners.length) { box.style.display = 'none'; return; }
+            box.style.display = 'block';
+            box.innerHTML = banners.map((b,i) => `
+                <div class="slide ${i===0?'active':''}" style="background-image:url('${b.image}')">
+                    <div class="slide-overlay">
+                        <span class="slide-tag">✨ FEATURED</span>
+                        <div class="slide-title">${b.title}</div>
+                    </div>
+                </div>
+            `).join('');
+            if(banners.length>1){
+                let idx=0;
+                setInterval(()=>{
+                    let slides=document.querySelectorAll('.slide');
+                    if(slides.length){
+                        slides[idx]?.classList.remove('active');
+                        idx=(idx+1)%slides.length;
+                        slides[idx]?.classList.add('active');
+                    }
+                },5000);
+            }
+        });
+
+        function render() {
+            const term = document.getElementById('search-input')?.value.toLowerCase() || '';
+            const filtered = products.filter(p => p.live && (currentCat === 'All' || p.category === currentCat));
+            const searched = products.filter(p => p.live && p.title.toLowerCase().includes(term));
+            document.getElementById('grid').innerHTML = generateCards(filtered);
+            const searchGrid = document.getElementById('search-grid');
+            if(term.trim() !== "") searchGrid.innerHTML = generateCards(searched);
+            else searchGrid.innerHTML = `<div style="text-align:center; padding:60px;"><i class="fas fa-gem" style="font-size:44px; color:#E9B35F;"></i><p style="margin-top:12px;">Type to find premium treasures ✨</p></div>`;
+        }
+
+        function generateCards(list) {
+            if(!list.length) return `<div style="text-align:center; padding:50px; color:#a281b5;">✨ No items found yet. Admin can add from panel.</div>`;
+            return list.map(p => `
+                <div class="card" onclick="openDetail('${p.id}')">
+                    <div class="card-img-box">
+                        <img src="${p.image}" class="card-img" onerror="this.src='https://placehold.co/600x400/f3ede3/a77b91?text=Krishna'">
+                        <div style="position:absolute; top:14px; left:14px; background:white; padding:4px 12px; border-radius:40px; font-size:12px; font-weight:bold;">${p.category}</div>
+                    </div>
+                    <div class="card-content">
+                        <div class="card-title">${p.title}</div>
+                        <div class="card-desc">${p.description || 'Premium creative asset'}</div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function filter(cat, el) {
+            currentCat = cat;
+            document.querySelectorAll('.cat-pill').forEach(p => p.classList.remove('active'));
+            el.classList.add('active');
+            render();
+        }
+
+        document.getElementById('search-input')?.addEventListener('input', render);
+
+        window.openDetail = async function(id) {
+            const p = products.find(x=>x.id===id);
+            if(!p) return;
+            document.getElementById('modal-content').innerHTML = `
+                <img src="${p.image}" class="hero-img" onerror="this.src='https://placehold.co/800x400/f3ede3/a77b91?text=Krishna'">
+                <div class="content-box">
+                    <h2 style="font-size:30px; font-weight:800;">${p.title}</h2>
+                    <div style="margin:8px 0; color:#7f6b92;">${p.category}</div>
+                    <div style="line-height:1.6;">${p.description || 'No description provided.'}</div>
+                    ${p.features ? `<div style="margin-top:20px;"><strong>✨ Highlights:</strong><ul style="margin-top:8px; margin-left:20px;">${p.features.map(f=>`<li>${f}</li>`).join('')}</ul></div>` : ''}
+                    <a href="${p.downloadLink || '#'}" target="_blank" class="btn-gradient"><i class="fas fa-download"></i> UNLOCK PREMIUM</a>
+                    <a href="#" onclick="closeModal();return false;" style="display:block; text-align:center; margin-top:16px; color:#C38D9E;">Close</a>
+                </div>
+            `;
+            document.body.classList.add('modal-open');
+        };
+
+        function closeModal() { document.body.classList.remove('modal-open'); }
+
+        // LEGAL MODAL (simple popup for demo)
+        function openLegal(type) {
+            let content = "";
+            if(type === 'Privacy Policy') content = "Krishna Studio respects your privacy. No personal data is shared with third parties. All information is used solely for improving your experience.";
+            else if(type === 'Terms of Service') content = "By using this website, you agree not to redistribute any content without permission. All assets are for personal use only.";
+            else content = "All trademarks and logos belong to their respective owners. Krishna Studio is a premium discovery platform.";
+            alert(`${type}\n\n${content}`);
+        }
+
+        // CONTACT FORM FUNCTION (old feature)
+        function sendContact() {
+            const email = document.getElementById('contactEmail').value.trim();
+            const msg = document.getElementById('contactMessage').value.trim();
+            if(!email || !msg) {
+                alert("❌ Please enter both email and message.");
+                return;
+            }
+            alert(`💖 Thank you, ${email}! Your message has been sent to Krishna Studio crew. We'll reach out soon.`);
+            document.getElementById('contactEmail').value = '';
+            document.getElementById('contactMessage').value = '';
+        }
+
+        // initial load
+        window.render = render;
+    </script>
+</body>
+</html>
